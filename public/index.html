@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Estudiantes - Supabase</title>
+<style>
+body{font:16px system-ui;background:#f3f6fb;color:#172033;margin:0;padding:24px}main{max-width:720px;margin:auto}
+section{background:white;border:1px solid #dbe2ee;border-radius:12px;padding:18px;margin:16px 0}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px}form{display:grid;gap:9px}
+label{display:grid;gap:5px}input{font:inherit;padding:9px;border:1px solid #aeb9c8;border-radius:6px}
+button{font:inherit;padding:9px 13px;border:0;border-radius:6px;background:#1769aa;color:white;cursor:pointer}
+table{width:100%;border-collapse:collapse;text-align:left}td,th{padding:8px;border-bottom:1px solid #ddd}.row{display:flex;justify-content:space-between;align-items:center}
+</style>
+<main><h1>Registro de estudiantes</h1><p>Formulario y autenticación básica con Supabase.</p>
+<section><h2>Acceso</h2><div class="cols">
+<form id="signup"><h3>Crear cuenta</h3><label>Correo<input name="email" type="email" required></label><label>Contraseña<input name="password" type="password" minlength="6" required></label><button>Registrarme</button></form>
+<form id="login"><h3>Iniciar sesión</h3><label>Correo<input name="email" type="email" required></label><label>Contraseña<input name="password" type="password" required></label><button>Entrar</button></form></div>
+<div class="row"><span id="session">No has iniciado sesión.</span><button id="logout" type="button" hidden>Cerrar sesión</button></div></section>
+<section><h2>Agregar estudiante</h2><form id="student"><label>Nombre<input name="nombre" required maxlength="100"></label><label>Carrera<input name="carrera" required maxlength="100"></label><button>Guardar estudiante</button></form></section>
+<section><div class="row"><h2>Estudiantes</h2><button id="refresh" type="button">Actualizar</button></div><p id="message" aria-live="polite"></p><table><thead><tr><th>ID</th><th>Nombre</th><th>Carrera</th></tr></thead><tbody id="rows"></tbody></table></section></main>
+<script src="/config.js"></script><script src="/supabase.js"></script><script>
+const db=window.supabase.createClient(APP_CONFIG.url,APP_CONFIG.key),msg=document.querySelector('#message'),rows=document.querySelector('#rows');
+async function list(){rows.replaceChildren();const r=await db.from('estudiantes').select('id,nombre,carrera').order('id');if(r.error){msg.textContent='Error al leer (revisa RLS): '+r.error.message;return}for(const s of r.data){const tr=document.createElement('tr');for(const v of [s.id,s.nombre,s.carrera]){const td=document.createElement('td');td.textContent=v??'';tr.append(td)}rows.append(tr)}msg.textContent=r.data.length?'Registros: '+r.data.length:'No hay filas visibles.'}
+function session(s){document.querySelector('#session').textContent=s?'Sesión: '+s.user.email:'No has iniciado sesión.';document.querySelector('#logout').hidden=!s;if(s)list();else rows.replaceChildren()}
+document.querySelector('#signup').onsubmit=async e=>{e.preventDefault();const f=e.currentTarget,v=new FormData(f),r=await db.auth.signUp({email:v.get('email'),password:v.get('password')});msg.textContent=r.error?'Error: '+r.error.message:r.data.session?'Cuenta creada. Ya puedes guardar.':'Cuenta creada: confirma el correo y después inicia sesión.';if(!r.error)f.reset()};
+document.querySelector('#login').onsubmit=async e=>{e.preventDefault();const f=e.currentTarget,v=new FormData(f),r=await db.auth.signInWithPassword({email:v.get('email'),password:v.get('password')});msg.textContent=r.error?'Error: '+r.error.message:'Sesión iniciada.';if(!r.error)f.reset()};
+document.querySelector('#logout').onclick=async()=>{const r=await db.auth.signOut();if(r.error)msg.textContent=r.error.message};
+document.querySelector('#student').onsubmit=async e=>{e.preventDefault();const f=e.currentTarget,v=new FormData(f),s=await db.auth.getSession();if(!s.data.session){msg.textContent='Primero inicia sesión.';return}const r=await db.from('estudiantes').insert([{nombre:v.get('nombre').trim(),carrera:v.get('carrera').trim()}]);if(r.error){msg.textContent='No se guardó. Revisa política RLS de INSERT: '+r.error.message;return}f.reset();msg.textContent='Estudiante guardado.';list()};
+document.querySelector('#refresh').onclick=list;db.auth.onAuthStateChange((_e,s)=>session(s));db.auth.getSession().then(r=>session(r.data.session));
+</script></html>

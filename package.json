@@ -1,16 +1,12 @@
 {
   "name": "mi-app-supabase",
   "version": "1.0.0",
-  "description": "",
+  "description": "Práctica de Node.js con Supabase",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "scripts": {"start": "node server.js", "test": "echo \"Error: no test specified\" && exit 1"},
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
-  "dependencies": {
-    "@supabase/supabase-js": "^2.118.0"
-  }
+  "dependencies": {"@supabase/supabase-js": "^2.118.0"}
 }
